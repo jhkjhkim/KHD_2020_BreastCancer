@@ -132,7 +132,7 @@ if __name__ == '__main__':
         model.add(tf.keras.layers.Conv2D(64, (5, 5),
                                          activation='relu',
                                          kernel_initializer='he_normal',
-                                         input_shape=(512, 512, 3)))
+                                         input_shape=(299, 299, 3)))
         model.add(tf.keras.layers.MaxPooling2D((2, 2)))
         model.add(tf.keras.layers.Dropout(rate=0.2))
 
@@ -147,7 +147,7 @@ if __name__ == '__main__':
         model.add(tf.keras.layers.Dense(1, activation='relu'))
         return model
 
-    model = build_xception()
+    model = cnn()
 
     # Loss and optimizer
 
@@ -174,28 +174,19 @@ if __name__ == '__main__':
         ##############################################
 
         # call backs
-        reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.25, verbose=1)
-        print("im here 1")
+        reduce_lr = ReduceLROnPlateau(monitor='loss', patience=8, factor = 0.25, verbose=1)
+
 
         X = PathDataset(image_path, labels, batch_size = batch_size, test_mode=False)
-        print("im here 2")
-
-        X_train = X[:int(len(X)*0.8)]
-        print("im here 3")
-        X_val = X[int(len(X)*0.8):]
-        
 
 
-
-        #X_train, X_val = train_test_split(X, test_size=0.2)
-        print("X_train length:", len(X_train))
         print("---------------it is working---------------")
 
 
 
         for epoch in range(num_epochs):
             print("still working")
-            hist = model.fit(X_train, shuffle=True, callbacks=[reduce_lr], validation_data=X_val, verbose=1)
+            hist = model.fit(X, shuffle=True, callbacks=[reduce_lr])
 
             nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss']) #, acc=train_acc)
             nsml.save(epoch)
