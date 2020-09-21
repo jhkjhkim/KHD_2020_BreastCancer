@@ -9,6 +9,10 @@ import arch
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM 
 import math
+from arch_Xception import build_xception
+from tensorflow.keras.callbacks import ReduceLROnPlateau
+from tensorflow.keras.applications import Xception
+
 
 ######################## DONOTCHANGE ###########################
 def bind_model(model):
@@ -60,7 +64,7 @@ def label_loader (root_path, keys):
 
 
 class PathDataset(tf.keras.utils.Sequence): 
-    def __init__(self,image_path, labels=None, batch_size=128, test_mode= True): 
+    def __init__(self,image_path, labels=None, batch_size=32, test_mode= True):
         self.image_path = image_path
         self.labels = labels
         self.mode = test_mode
@@ -96,7 +100,7 @@ if __name__ == '__main__':
     # hyperparameters
     args.add_argument('--epoch', type=int, default=1)
     args.add_argument('--batch_size', type=int, default=16) 
-    args.add_argument('--learning_rate', type=int, default=0.0001)
+    args.add_argument('--learning_rate', type=int, default=0.001)
 
     config = args.parse_args()
 
@@ -107,12 +111,27 @@ if __name__ == '__main__':
     learning_rate = config.learning_rate  
 
     # model setting ## 반드시 이 위치에서 로드해야함
-    model = arch.cnn() 
+    def build_xception():
+        base_model = Xception(include_top=False, weights='imagenet', input_shape=(512, 512, 3))
+        base_model.trainable = True
+
+        base_model.outputs = [base_model.layers[-1].output]
+        last = base_model.outputs[0]
+        x = GlobalAveragePooling2D()(last)
+        preds = Dense(1, activation='sigmoid')(x)
+
+        model = Model(base_model.input, preds)
+
+        return model
+
+    model = build_xception()
 
     # Loss and optimizer
+
     model.compile(tf.keras.optimizers.Adam(),
                 loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
                 metrics=['accuracy'])
+    # make your own loss function
 
 
     ############ DONOTCHANGE ###############
@@ -131,10 +150,14 @@ if __name__ == '__main__':
         labels = label_loader(root_path, image_keys)
         ##############################################
 
+        # call backs
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.25, min_lr = 1e-10, verbose=1 )
+
         X = PathDataset(image_path, labels, batch_size = batch_size, test_mode=False)
+        print("it is working")
  
         for epoch in range(num_epochs):
-            hist = model.fit(X, shuffle=True)        
+            hist = model.fit(X, shuffle=True, callbacks=[reduce_lr])
 
             nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])#, acc=train_acc)
             nsml.save(epoch)
