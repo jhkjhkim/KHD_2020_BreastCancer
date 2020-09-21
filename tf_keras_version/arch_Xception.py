@@ -1,7 +1,7 @@
 import tensorflow as tf # Tensorflow 2
 from tensorflow.keras.applications import Xception
 
-def cnn():
+def Xception():
     conv_base = Xception(weights='imagenet',
                          include_top = False)
     model = tf.keras.models.Sequential()
