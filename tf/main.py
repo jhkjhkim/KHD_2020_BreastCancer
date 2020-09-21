@@ -12,6 +12,7 @@ import math
 from arch_Xception import build_xception
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
+from sklearn.model_selection import train_test_split
 
 
 ######################## DONOTCHANGE ###########################
@@ -73,6 +74,7 @@ class PathDataset(tf.keras.utils.Sequence):
     def __getitem__(self, idx): 
         image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
         batch_x = np.array([imread(x) for x in image_paths])
+        # print(":::batch_x.shape = ", batch_x.shape)
         
                 ### REQUIRED: PREPROCESSING ###
 
@@ -98,8 +100,8 @@ if __name__ == '__main__':
     ######################################################################
 
     # hyperparameters
-    args.add_argument('--epoch', type=int, default=1)
-    args.add_argument('--batch_size', type=int, default=16) 
+    args.add_argument('--epoch', type=int, default=100)
+    args.add_argument('--batch_size', type=int, default=16)
     args.add_argument('--learning_rate', type=int, default=0.001)
 
     config = args.parse_args()
@@ -117,11 +119,32 @@ if __name__ == '__main__':
 
         base_model.outputs = [base_model.layers[-1].output]
         last = base_model.outputs[0]
-        x = GlobalAveragePooling2D()(last)
-        preds = Dense(1, activation='sigmoid')(x)
+        x = tf.keras.layers.GlobalAveragePooling2D()(last)
+        preds = tf.keras.layers.Dense(1, activation='sigmoid')(x)
 
-        model = Model(base_model.input, preds)
+        model = tf.keras.models.Model(base_model.input, preds)
 
+        return model
+
+
+    def cnn():
+        model = tf.keras.models.Sequential()
+        model.add(tf.keras.layers.Conv2D(64, (5, 5),
+                                         activation='relu',
+                                         kernel_initializer='he_normal',
+                                         input_shape=(512, 512, 3)))
+        model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+        model.add(tf.keras.layers.Dropout(rate=0.2))
+
+        model.add(tf.keras.layers.Conv2D(16, (3, 3),
+                                         kernel_initializer='he_normal',
+                                         activation='relu'))
+
+        model.add(tf.keras.layers.Flatten())
+        model.add(tf.keras.layers.Dense(64,
+                                        kernel_initializer='he_normal',
+                                        activation='relu'))
+        model.add(tf.keras.layers.Dense(1, activation='relu'))
         return model
 
     model = build_xception()
@@ -151,13 +174,28 @@ if __name__ == '__main__':
         ##############################################
 
         # call backs
-        reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.25, min_lr = 1e-10, verbose=1 )
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.25, verbose=1)
+        print("im here 1")
 
         X = PathDataset(image_path, labels, batch_size = batch_size, test_mode=False)
-        print("it is working")
- 
-        for epoch in range(num_epochs):
-            hist = model.fit(X, shuffle=True, callbacks=[reduce_lr])
+        print("im here 2")
 
-            nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])#, acc=train_acc)
+        X_train = X[:int(len(X)*0.8)]
+        print("im here 3")
+        X_val = X[int(len(X)*0.8):]
+        print("im here 4")
+
+
+
+        #X_train, X_val = train_test_split(X, test_size=0.2)
+        print("X_train length:", len(X_train))
+        print("---------------it is working---------------")
+
+
+
+        for epoch in range(num_epochs):
+            print("still working")
+            hist = model.fit(X_train, shuffle=True, callbacks=[reduce_lr], validation_data=X_val, verbose=1)
+
+            nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss']) #, acc=train_acc)
             nsml.save(epoch)
