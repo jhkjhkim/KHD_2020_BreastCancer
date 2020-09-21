@@ -75,16 +75,6 @@ class PathDataset(tf.keras.utils.Sequence):
         self.batch_size = batch_size
 
 
-def __getitem__(self, idx):
-        batch_x = self.x[idx * self.batch_size:(idx + 1) *
-        self.batch_size]
-        batch_y = self.y[idx * self.batch_size:(idx + 1) *
-        self.batch_size]
-
-        return np.array([resize(imread(file_name), (200, 200)) for file_name in batch_x]), np.array(batch_y)
-
-
-
     def __getitem__(self, idx): 
         image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
         batch_x = np.array([resize(imread(x), (299,299)) for x in image_paths])
