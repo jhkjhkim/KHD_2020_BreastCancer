@@ -7,15 +7,15 @@ from matplotlib.image import imread
 import tensorflow as tf # Tensorflow 2
 import arch
 import nsml
-from nsml.constants import DATASET_PATH, GPU_NUM 
+from nsml.constants import DATASET_PATH, GPU_NUM
 import math
 from arch_Xception import build_xception
 from tensorflow.keras.callbacks import ReduceLROnPlateau
-from tensorflow.keras.applications import Xception
+from tensorflow.keras.applications import Xception, EfficientNetB0
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from skimage.transform import resize
-
+from tensorflow.keras.layers import experimental
 
 
 ######################## DONOTCHANGE ###########################
@@ -79,8 +79,8 @@ class PathDataset(tf.keras.utils.Sequence):
         image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
         
         # resize & rescale
-        batch_x = np.array([resize(imread(x), (299,299))/255.0  for x in image_paths])
-        print("batch x example:",batch_x[0][0][0])
+        batch_x = np.array([imread(x) for x in image_paths])
+        # print("batch x example:",batch_x[0][0][0])
         
         # print(":::batch_x.shape = ", batch_x.shape)
         
@@ -123,17 +123,36 @@ if __name__ == '__main__':
 
     # model setting ## 반드시 이 위치에서 로드해야함
     def build_xception():
-        base_model = Xception(include_top=False, weights='imagenet', input_shape=(512, 512, 3))
+
+        base_model = Xception(include_top=False, weights='imagenet' , input_shape=(299, 299, 3))
         base_model.trainable = True
 
-        base_model.outputs = [base_model.layers[-1].output]
-        last = base_model.outputs[0]
-        x = tf.keras.layers.GlobalAveragePooling2D()(last)
-        preds = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+        model = tf.keras.Sequential([tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
+                             tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+                             tf.keras.layers.experimental.preprocessing.RandomRotation(0.2),
+                             base_model,
+                             tf.keras.layers.GlobalAveragePooling2D(),
+                             tf.keras.layers.Dense(1, activation='sigmoid')])
 
-        model = tf.keras.models.Model(base_model.input, preds)
+
 
         return model
+
+
+    def build_efficientnetb0():
+
+        base_model = EfficientNetB0(include_top=False, weights=None, input_shape=(299, 299, 3))
+        base_model.trainable = True
+
+        model = tf.keras.Sequential([tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
+                                     tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+                                     tf.keras.layers.experimental.preprocessing.RandomRotation(0.2),
+                                     base_model,
+                                     tf.keras.layers.GlobalAveragePooling2D(),
+                                     tf.keras.layers.Dense(1, activation='sigmoid')])
+
+        return model
+
 
 
     def cnn():
@@ -156,7 +175,7 @@ if __name__ == '__main__':
         model.add(tf.keras.layers.Dense(1, activation='relu'))
         return model
 
-    model = cnn()
+    model = build_efficientnetb0()
 
     # Loss and optimizer
 
@@ -197,5 +216,5 @@ if __name__ == '__main__':
             print("still working")
             hist = model.fit(X, shuffle=True, callbacks=[reduce_lr])
 
-            nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss']) #, acc=train_acc)
+            nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])  #, acc=train_acc)
             nsml.save(epoch)
