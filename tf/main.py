@@ -183,7 +183,7 @@ if __name__ == '__main__':
         X_train = X[:int(len(X)*0.8)]
         print("im here 3")
         X_val = X[int(len(X)*0.8):]
-        print("im here 4")
+        
 
 
 
