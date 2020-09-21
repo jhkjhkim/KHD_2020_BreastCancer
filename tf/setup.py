@@ -5,5 +5,5 @@ import setuptools
 setup(
     name='ncc_test',
     version='1.0',
-    install_requires=['scikit-learn' ,'matplotlib']
+    install_requires=['scikit-learn' ,'matplotlib','scikit-image']
 )
