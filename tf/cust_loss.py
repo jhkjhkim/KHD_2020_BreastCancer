@@ -51,5 +51,5 @@ def custom_loss_function(y_true, y_pred):
     sp = tf.where(tf.is_nan(sp), tf.zeros_like(sp), sp)
     ntv = tf.where(tf.is_nan(ntv), tf.zeros_like(ntv), ntv)
     f1 = tf.where(tf.is_nan(f1), tf.zeros_like(f1), f1)
-    return 6 - K.mean(f1+a+p+r+sp+ntv)
+    return 6 - K.mean(f1+a+p+r+sp+ntv) # try
 
