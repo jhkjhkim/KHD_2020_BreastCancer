@@ -18,9 +18,7 @@ def build_xception():
     preds = Dense(1, activation='sigmoid')(x)
     
     model = Model(base_model.input, preds)
-    
-    model.compile(loss = 'binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    
+
     return model
 
 def build_train_generator(train_dir, target_image_size, train_batch_size):
@@ -30,7 +28,7 @@ def build_train_generator(train_dir, target_image_size, train_batch_size):
     
     train_generator = datagen.flow_from_directory(train_dir,
                                                   target_size = target_image_size, 
-                                                  batch_size=train_batch_size,
+                                                  batch_size = train_batch_size,
                                                  class_mode = 'binary')
     
     
