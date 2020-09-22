@@ -81,8 +81,8 @@ class PathDataset(tf.keras.utils.Sequence):
         image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
 
         # resize & rescale
-        batch_x = np.array([imread(x) for x in image_paths])
-        # print("batch x example:",batch_x[0][0][0])
+        batch_x = np.array([resize(imread(x),(299,299)) for x in image_paths])
+
 
         # print(":::batch_x.shape = ", batch_x.shape)
 
@@ -112,8 +112,8 @@ if __name__ == '__main__':
 
     # hyperparameters
     args.add_argument('--epoch', type=int, default=500)
-    args.add_argument('--batch_size', type=int, default=8)
-    args.add_argument('--learning_rate', type=int, default=0.0001)
+    args.add_argument('--batch_size', type=int, default=32)
+    args.add_argument('--learning_rate', type=int, default=0.001)
 
     config = args.parse_args()
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         best = 10
         cnt = 0
         # patience
-        patience = 7
+        patience = 3
 
         for epoch in range(num_epochs):
             hist = model.fit(X, validation_data=X_val, shuffle=True)

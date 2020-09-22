@@ -1,4 +1,4 @@
-import tensorflow as tf  # Tensorflow 2.2
+import tensorflow as tf  # Tensorflow 2.2.
 import tensorflow.keras.backend as K
 
 
