@@ -9,9 +9,10 @@ import tensorflow as tf # Tensorflow 2
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 import math
-from arch_Xception import build_xception
+from arch import cnn, build_xception, recall, precision, f1, sp, ntv, custom, cust_loss_function
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
+import tensorflow.keras.backend as K
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from skimage.transform import resize
@@ -96,6 +97,7 @@ class PathDataset(tf.keras.utils.Sequence):
     def __len__(self):
         return math.ceil(len(self.image_path) / self.batch_size)
 
+
 if __name__ == '__main__':
 
     ########## ENVIRONMENT SETUP ############
@@ -110,7 +112,7 @@ if __name__ == '__main__':
 
     # hyperparameters
     args.add_argument('--epoch', type=int, default=500)
-    args.add_argument('--batch_size', type=int, default=32)
+    args.add_argument('--batch_size', type=int, default=8)
     args.add_argument('--learning_rate', type=int, default=0.0001)
 
     config = args.parse_args()
@@ -122,51 +124,15 @@ if __name__ == '__main__':
     learning_rate = config.learning_rate  
 
     # model setting ## 반드시 이 위치에서 로드해야함
-    def build_xception():
-
-        base_model = Xception(include_top=False, weights='imagenet' , input_shape=(299, 299, 3))
-        base_model.trainable = True
-
-        model = tf.keras.Sequential([tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
-                             tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
-                             tf.keras.layers.experimental.preprocessing.RandomRotation(0.2),
-                             base_model,
-                             tf.keras.layers.GlobalAveragePooling2D(),
-                             tf.keras.layers.Dense(1, activation='sigmoid')])
 
 
-
-        return model
-
-
-
-    def cnn():
-        model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.Conv2D(64, (5, 5),
-                                         activation='relu',
-                                         kernel_initializer='he_normal',
-                                         input_shape=(299, 299, 3)))
-        model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-        model.add(tf.keras.layers.Dropout(rate=0.2))
-
-        model.add(tf.keras.layers.Conv2D(16, (3, 3),
-                                         kernel_initializer='he_normal',
-                                         activation='relu'))
-
-        model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(64,
-                                        kernel_initializer='he_normal',
-                                        activation='relu'))
-        model.add(tf.keras.layers.Dense(1, activation='relu'))
-        return model
-
-    model = build_xception()
+    model = cnn()
 
     # Loss and optimizer
 
     model.compile(tf.keras.optimizers.Adam(),
                 loss=tf.keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=0.1),
-                metrics=['accuracy'])
+                metrics=['accuracy', recall, precision, f1, sp,ntv, custom])
     # make your own loss function
 
 
@@ -187,26 +153,40 @@ if __name__ == '__main__':
         ##############################################
 
         # call backs
-        reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
-        
-        image_path_trn=image_path[:int(len(image_path)*0.85)]
-        image_path_val=image_path[int(len(image_path)*0.85):] 
-        print(":::", len(image_path_trn),len(image_path_val))
+        #reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
 
-        labels_trn=labels[:int(len(labels)*0.85)]
-        labels_val=labels[int(len(labels)*0.85):]  
-        print(len(labels_trn), len(labels_val))
+        image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,
+                                                                                  test_size=0.1)
+        unique, counts = np.unique(labels_trn, return_counts=True)
+        num_trn = dict(zip(unique, counts))
+        print("Number of Train Class", num_trn)
 
-        X = PathDataset(image_path_trn, labels_trn, batch_size = batch_size, test_mode=False)
-        X_val = PathDataset(image_path_val, labels_val, batch_size = batch_size, test_mode=False)
+        unique, counts = np.unique(labels_val, return_counts=True)
+        num_val = dict(zip(unique, counts))
+        print("Number of Val Class", num_val)
+
+        X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
+        X_val = PathDataset(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
 
         print("---------------it is working---------------")
 
-
+        best = 10
+        cnt = 0
+        # patience
+        patience = 7
 
         for epoch in range(num_epochs):
-            print("::Current Epoch ",epoch)
-            hist = model.fit(X, validation_data=X_val ,shuffle=True, callbacks=[reduce_lr])
-
-            nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])  #, acc=train_acc)
+            hist = model.fit(X, validation_data = X_val, shuffle=True)
+            val_loss = hist.history['val_loss'][-1]
+            if best > val_loss:
+                print(":::best val loss updated")
+                best = val_loss
+                cnt = 0
+            else:
+                cnt += 1
+                print(':::not updated, count', cnt)
+                if cnt >= patience:
+                    model.optimizer.lr = model.optimizer.lr/5
+                    print(':::**learning rate decreased to', model.optimizer.lr.numpy())
+            nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss']) #, acc=train_acc)
             nsml.save(epoch)
