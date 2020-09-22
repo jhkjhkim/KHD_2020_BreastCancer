@@ -166,7 +166,7 @@ if __name__ == '__main__':
         X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
         X_val = PathDataset(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
 
-        print("---------------it is working---------------")
+        print("---------------it is working----------------")
 
         best = 10
         cnt = 0
