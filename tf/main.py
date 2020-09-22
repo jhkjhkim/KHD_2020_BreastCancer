@@ -4,8 +4,8 @@ import sys
 import time
 import numpy as np
 from matplotlib.image import imread
-import tensorflow as tf # Tensorflow 2
-#import arch
+import tensorflow as tf  # Tensorflow 2
+# import arch
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 import math
@@ -32,8 +32,8 @@ def bind_model(model):
 
     def infer(image_path):
         result = []
-        X = PathDataset(image_path, labels=None, batch_size = batch_size)
-        y_hat = model.predict(X)            
+        X = PathDataset(image_path, labels=None, batch_size=batch_size)
+        y_hat = model.predict(X)
         result.extend(np.argmax(y_hat, axis=1))
 
         print('predicted')
@@ -42,12 +42,12 @@ def bind_model(model):
     nsml.bind(save=save, load=load, infer=infer)
 
 
-def path_loader (root_path):
+def path_loader(root_path):
     image_path = []
     image_keys = []
-    for _,_,files in os.walk(os.path.join(root_path,'train_data')):
+    for _, _, files in os.walk(os.path.join(root_path, 'train_data')):
         for f in files:
-            path = os.path.join(root_path,'train_data',f)
+            path = os.path.join(root_path, 'train_data', f)
             if path.endswith('.png'):
                 image_keys.append(int(f[:-4]))
                 image_path.append(path)
@@ -55,42 +55,42 @@ def path_loader (root_path):
     return np.array(image_keys), np.array(image_path)
 
 
-def label_loader (root_path, keys):
+def label_loader(root_path, keys):
     labels_dict = {}
     labels = []
-    with open (os.path.join(root_path,'train_label'), 'rt') as f :
+    with open(os.path.join(root_path, 'train_label'), 'rt') as f:
         for row in f:
             row = row.split()
             labels_dict[int(row[0])] = (int(row[1]))
     for key in keys:
         labels = [labels_dict[x] for x in keys]
     return labels
+
+
 ############################################################
 
 
-class PathDataset(tf.keras.utils.Sequence): 
-    def __init__(self,image_path, labels=None, batch_size=32, test_mode= True):
+class PathDataset(tf.keras.utils.Sequence):
+    def __init__(self, image_path, labels=None, batch_size=32, test_mode=True):
         self.image_path = image_path
         self.labels = labels
         self.mode = test_mode
         self.batch_size = batch_size
 
-
-    def __getitem__(self, idx): 
+    def __getitem__(self, idx):
         image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
-        
+
         # resize & rescale
         batch_x = np.array([imread(x) for x in image_paths])
         # print("batch x example:",batch_x[0][0][0])
-        
+
         # print(":::batch_x.shape = ", batch_x.shape)
-        
-                ### REQUIRED: PREPROCESSING ###
-        
-        
+
+        ### REQUIRED: PREPROCESSING ###
+
         if self.mode:
             return batch_x
-        else: 
+        else:
             batch_y = np.array(self.labels[idx * self.batch_size:(idx + 1) * self.batch_size])
             return batch_x, batch_y
 
@@ -121,39 +121,37 @@ if __name__ == '__main__':
     num_epochs = config.epoch
     batch_size = config.batch_size
     num_classes = 2
-    learning_rate = config.learning_rate  
+    learning_rate = config.learning_rate
 
     # model setting ## 반드시 이 위치에서 로드해야함
-
 
     model = cnn()
 
     # Loss and optimizer
 
     model.compile(tf.keras.optimizers.Adam(),
-                loss=tf.keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=0.1),
-                metrics=['accuracy', recall, precision, f1, sp,ntv, custom])
+                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=0.1),
+                  metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
     # make your own loss function
-
 
     ############ DONOTCHANGE ###############
     bind_model(model)
-    if config.pause: ## test mode 일때는 여기만 접근
+    if config.pause:  ## test mode 일때는 여기만 접근
         print('Inferring Start...')
         nsml.paused(scope=locals())
     #######################################
 
-    if config.mode == 'train': ### training mode 일때는 여기만 접근
+    if config.mode == 'train':  ### training mode 일때는 여기만 접근
         print('Training Start...')
 
         ############ DONOTCHANGE: Path loader ###############
-        root_path = os.path.join(DATASET_PATH,'train')        
+        root_path = os.path.join(DATASET_PATH, 'train')
         image_keys, image_path = path_loader(root_path)
         labels = label_loader(root_path, image_keys)
         ##############################################
 
         # call backs
-        #reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
+        # reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
 
         image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,
                                                                                   test_size=0.1)
@@ -176,7 +174,7 @@ if __name__ == '__main__':
         patience = 7
 
         for epoch in range(num_epochs):
-            hist = model.fit(X, validation_data = X_val, shuffle=True)
+            hist = model.fit(X, validation_data=X_val, shuffle=True)
             val_loss = hist.history['val_loss'][-1]
             if best > val_loss:
                 print(":::best val loss updated")
@@ -186,7 +184,7 @@ if __name__ == '__main__':
                 cnt += 1
                 print(':::not updated, count', cnt)
                 if cnt >= patience:
-                    model.optimizer.lr = model.optimizer.lr/5
+                    model.optimizer.lr = model.optimizer.lr / 5
                     print(':::**learning rate decreased to', model.optimizer.lr.numpy())
-            nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss']) #, acc=train_acc)
+            nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])  # , acc=train_acc)
             nsml.save(epoch)
