@@ -5,13 +5,13 @@ import time
 import numpy as np
 from matplotlib.image import imread
 import tensorflow as tf # Tensorflow 2
-import arch
+#import arch
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 import math
 from arch_Xception import build_xception
 from tensorflow.keras.callbacks import ReduceLROnPlateau
-from tensorflow.keras.applications import Xception, EfficientNetB0
+from tensorflow.keras.applications import Xception
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from skimage.transform import resize
@@ -109,8 +109,8 @@ if __name__ == '__main__':
     ######################################################################
 
     # hyperparameters
-    args.add_argument('--epoch', type=int, default=100)
-    args.add_argument('--batch_size', type=int, default=16)
+    args.add_argument('--epoch', type=int, default=500)
+    args.add_argument('--batch_size', type=int, default=32)
     args.add_argument('--learning_rate', type=int, default=0.001)
 
     config = args.parse_args()
@@ -146,7 +146,7 @@ if __name__ == '__main__':
 
         model = tf.keras.Sequential([tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
                                      tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
-                                     tf.keras.layers.experimental.preprocessing.RandomRotation(0.2),
+                                     tf.keras.layers.experimental.preprocessing.RandomRotation(0.2, interpolation='nearest'),
                                      base_model,
                                      tf.keras.layers.GlobalAveragePooling2D(),
                                      tf.keras.layers.Dense(1, activation='sigmoid')])
@@ -175,12 +175,12 @@ if __name__ == '__main__':
         model.add(tf.keras.layers.Dense(1, activation='relu'))
         return model
 
-    model = build_efficientnetb0()
+    model = build_xception()
 
     # Loss and optimizer
 
     model.compile(tf.keras.optimizers.Adam(),
-                loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+                loss=tf.keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=0.1),
                 metrics=['accuracy'])
     # make your own loss function
 
@@ -202,19 +202,26 @@ if __name__ == '__main__':
         ##############################################
 
         # call backs
-        reduce_lr = ReduceLROnPlateau(monitor='loss', patience=8, factor = 0.25, verbose=1)
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
+        
+        image_path_trn=image_path[:int(len(image_path)*0.85)]
+        image_path_val=image_path[int(len(image_path)*0.85):] 
+        print(":::", len(image_path_trn),len(image_path_val))
 
+        labels_trn=labels[:int(len(labels)*0.85)]
+        labels_val=labels[int(len(labels)*0.85):]  
+        print(len(labels_trn), len(labels_val))
 
-        X = PathDataset(image_path, labels, batch_size = batch_size, test_mode=False)
-
+        X = PathDataset(image_path_trn, labels_trn, batch_size = batch_size, test_mode=False)
+        X_val = PathDataset(image_path_val, labels_val, batch_size = batch_size, test_mode=False)
 
         print("---------------it is working---------------")
 
 
 
         for epoch in range(num_epochs):
-            print("still working")
-            hist = model.fit(X, shuffle=True, callbacks=[reduce_lr])
+            print("::Current Epoch ",epoch)
+            hist = model.fit(X, validation_data=X_val ,shuffle=True, callbacks=[reduce_lr])
 
             nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])  #, acc=train_acc)
             nsml.save(epoch)
