@@ -9,7 +9,7 @@ import tensorflow as tf  # Tensorflow 2
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 import math
-from arch import cnn, build_xception, recall, precision, f1, sp, ntv, custom, cust_loss_function
+from arch import cnn, cnn_base, build_xception, recall, precision, f1, sp, ntv, custom, cust_loss_function
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
 import tensorflow.keras.backend as K
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     # hyperparameters
     args.add_argument('--epoch', type=int, default=500)
     args.add_argument('--batch_size', type=int, default=32)
-    args.add_argument('--learning_rate', type=int, default=0.001)
+    args.add_argument('--learning_rate', type=int, default=0.0001)
 
     config = args.parse_args()
 
@@ -144,14 +144,14 @@ if __name__ == '__main__':
 
     # model setting ## 반드시 이 위치에서 로드해야함
 
-    model = cnn()
+    model = cnn_base()
 
     # Loss and optimizer
 
     model.compile(tf.keras.optimizers.Adam(),
                   loss=tf.keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=0.1),
                   metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
-    # make your own loss function
+
 
     ############ DONOTCHANGE ###############
     bind_model(model)
@@ -172,29 +172,50 @@ if __name__ == '__main__':
         # call backs
         # reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
 
-        image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,
-                                                                                  test_size=0.15)
+        #image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,test_size=0.15)
 
-        unique, counts = np.unique(labels_trn, return_counts=True)
-        num_trn = dict(zip(unique, counts))
-        print("Number of Train Class", num_trn)
+        #unique, counts = np.unique(labels_trn, return_counts=True)
+        #num_trn = dict(zip(unique, counts))
+        #print("Number of Train Class", num_trn)
 
-        unique, counts = np.unique(labels_val, return_counts=True)
-        num_val = dict(zip(unique, counts))
-        print("Number of Val Class", num_val)
+        #unique, counts = np.unique(labels_val, return_counts=True)
+        #num_val = dict(zip(unique, counts))
+        #print("Number of Val Class", num_val)
 
-        X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
-        X_val = PathDataset(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
+        #X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
+        #X_val = PathDataset(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
+
+        X = PathDataset(image_path, labels, batch_size=batch_size, test_mode=False)
 
         print("---------------it is working----------------")
 
-        best = 10
-        cnt = 0
+        #best = 10
+        #cnt = 0
         # patience
-        patience = 2
+        #patience = 2
+
+        #for epoch in range(num_epochs):
+        #    hist = model.fit(X, validation_data=X_val, shuffle=True)
+        #    val_loss = hist.history['val_loss'][-1]
+        #    if best > val_loss:
+        #        print(":::best val loss updated")
+        #        best = val_loss
+        #        cnt = 0
+        #    else:
+        #        cnt += 1
+        #        print(':::not updated, count', cnt)
+        #        if cnt >= patience:
+        #            model.optimizer.lr = model.optimizer.lr / 5
+        #            print(':::**learning rate decreased to', model.optimizer.lr.numpy())
+        #    nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])  # , acc=train_acc)
+        #    nsml.save(epoch)
 
         for epoch in range(num_epochs):
-            hist = model.fit(X, validation_data=X_val, shuffle=True)
+            #hist = model.fit(X, validation_data=X_val, shuffle=True)
+            hist = model.fit(X, shuffle=True)
+            model.optimizer.lr = model.optimizer.lr * 0.9
+            print("::::current learning rate:", model.optimizer.lr.numpy())
+            """
             val_loss = hist.history['val_loss'][-1]
             if best > val_loss:
                 print(":::best val loss updated")
@@ -206,5 +227,6 @@ if __name__ == '__main__':
                 if cnt >= patience:
                     model.optimizer.lr = model.optimizer.lr / 5
                     print(':::**learning rate decreased to', model.optimizer.lr.numpy())
+            """
             nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])  # , acc=train_acc)
             nsml.save(epoch)
