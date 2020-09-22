@@ -14,6 +14,8 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
 import tensorflow.keras.backend as K
 from sklearn.model_selection import train_test_split
+import imgaug as ia
+from imgaug import augmenters as iaa
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from skimage.transform import resize
 from tensorflow.keras.layers import experimental
@@ -81,10 +83,11 @@ class PathDataset(tf.keras.utils.Sequence):
         image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
 
         # resize & rescale
-        batch_x = np.array([resize(imread(x),(299,299)) for x in image_paths])
+        batch_x = [resize(imread(x), (299, 299)) for x in image_paths]
+
+        batch_x = np.array([tf.keras.applications.xception.preprocess_input(x) for x in batch_x])
 
 
-        # print(":::batch_x.shape = ", batch_x.shape)
 
         ### REQUIRED: PREPROCESSING ###
 
@@ -154,7 +157,8 @@ if __name__ == '__main__':
         # reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
 
         image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,
-                                                                                  test_size=0.1)
+                                                                                  test_size=0.15)
+
         unique, counts = np.unique(labels_trn, return_counts=True)
         num_trn = dict(zip(unique, counts))
         print("Number of Train Class", num_trn)

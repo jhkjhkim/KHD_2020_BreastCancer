@@ -3,7 +3,7 @@ import tensorflow.keras.backend as K
 
 
 def cnn():
-    base_model = tf.keras.applications.Xception(include_top=False, weights=None, input_shape=(512, 512, 3))
+    base_model = tf.keras.applications.Xception(include_top=False, weights=None, input_shape=(299, 299, 3))
     base_model.trainable = True
 
     model = tf.keras.Sequential([
