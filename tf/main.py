@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # hyperparameters
     args.add_argument('--epoch', type=int, default=500)
     args.add_argument('--batch_size', type=int, default=32)
-    args.add_argument('--learning_rate', type=int, default=0.001)
+    args.add_argument('--learning_rate', type=int, default=0.0001)
 
     config = args.parse_args()
 
@@ -135,21 +135,6 @@ if __name__ == '__main__':
                              tf.keras.layers.Dense(1, activation='sigmoid')])
 
 
-
-        return model
-
-
-    def build_efficientnetb0():
-
-        base_model = EfficientNetB0(include_top=False, weights=None, input_shape=(299, 299, 3))
-        base_model.trainable = True
-
-        model = tf.keras.Sequential([tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
-                                     tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
-                                     tf.keras.layers.experimental.preprocessing.RandomRotation(0.2, interpolation='nearest'),
-                                     base_model,
-                                     tf.keras.layers.GlobalAveragePooling2D(),
-                                     tf.keras.layers.Dense(1, activation='sigmoid')])
 
         return model
 
