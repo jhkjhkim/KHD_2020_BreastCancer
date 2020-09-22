@@ -14,8 +14,8 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
 import tensorflow.keras.backend as K
 from sklearn.model_selection import train_test_split
-import imgaug as ia
-from imgaug import augmenters as iaa
+
+
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from skimage.transform import resize
 from tensorflow.keras.layers import experimental
@@ -78,15 +78,31 @@ class PathDataset(tf.keras.utils.Sequence):
         self.labels = labels
         self.mode = test_mode
         self.batch_size = batch_size
+        self.datagen = tf.keras.preprocessing.image.ImageDataGenerator()
 
     def __getitem__(self, idx):
         image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
-
+        #print("len(image_paths", len(image_paths))
         # resize & rescale
-        batch_x = [resize(imread(x), (299, 299)) for x in image_paths]
+        batch_x = np.array([resize(imread(x), (299, 299)) for x in image_paths])
 
-        batch_x = np.array([tf.keras.applications.xception.preprocess_input(x) for x in batch_x])
+        if not self.mode:
 
+            batch_list = []
+
+            for i in range(len(image_paths)):
+                theta, shear = np.random.uniform(-20, 20), np.random.uniform(-20, 20)
+                flip_v, flip_h = np.random.randint(0, 2), np.random.randint(0, 2)
+                x_transform = self.datagen.apply_transform(batch_x[i],
+                                                      transform_parameters={'theta': theta,
+                                                                            'flip_vertical': flip_v,
+                                                                            'flip_horizontal': flip_h,
+                                                                            'shear': shear})
+
+                batch_list.append(x_transform)
+                # if i == 0:
+                #    print("i am here2")
+            batch_x = np.array(batch_list)
 
 
         ### REQUIRED: PREPROCESSING ###
@@ -175,7 +191,7 @@ if __name__ == '__main__':
         best = 10
         cnt = 0
         # patience
-        patience = 3
+        patience = 2
 
         for epoch in range(num_epochs):
             hist = model.fit(X, validation_data=X_val, shuffle=True)
