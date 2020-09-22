@@ -41,9 +41,9 @@ def build_xception():
     base_model.trainable = True
 
     model = tf.keras.Sequential([
-        tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
-        tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
-        tf.keras.layers.experimental.preprocessing.RandomRotation(0.2, interpolation='nearest'),
+      #  tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
+      #  tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+      #  tf.keras.layers.experimental.preprocessing.RandomRotation(0.2, interpolation='nearest'),
         base_model,
         tf.keras.layers.GlobalAveragePooling2D(),
         tf.keras.layers.Dense(1, kernel_initializer='he_normal', activation='sigmoid')])
