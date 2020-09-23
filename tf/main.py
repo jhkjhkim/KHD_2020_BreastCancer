@@ -9,7 +9,7 @@ import tensorflow as tf  # Tensorflow 2
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 import math
-from arch import cnn, cnn_base, build_xception, recall, precision, f1, sp, ntv, custom, cust_loss_function
+from arch import cnn, cnn_base, build_xception, build_resnet50, recall, precision, f1, sp, ntv, custom, cust_loss_function
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
 import tensorflow.keras.backend as K
@@ -35,8 +35,16 @@ def bind_model(model):
     def infer(image_path):
         result = []
         X = PathDataset(image_path, labels=None, batch_size=batch_size)
+
+        print("X.__getitem__(0)", X.__getitem__(0))
         y_hat = model.predict(X)
+
+        print("y_hat",y_hat)
+
+
         result.extend(np.argmax(y_hat, axis=1))
+
+        print("result:", result)
 
         print('predicted')
         return np.array(result)
@@ -82,7 +90,7 @@ class PathDataset(tf.keras.utils.Sequence):
 
     def __getitem__(self, idx):
         image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
-        #print("len(image_paths", len(image_paths))
+
         # resize & rescale
         batch_x = np.array([resize(imread(x), (299, 299)) for x in image_paths])
 
@@ -104,6 +112,10 @@ class PathDataset(tf.keras.utils.Sequence):
                 #    print("i am here2")
             batch_x = np.array(batch_list)
 
+        #if np.max(batch_x[0]) > 1:
+        #    batch_x = batch_x / 255.
+        #    print("image has a pixel larger than 1 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 
         ### REQUIRED: PREPROCESSING ###
 
@@ -111,6 +123,7 @@ class PathDataset(tf.keras.utils.Sequence):
             return batch_x
         else:
             batch_y = np.array(self.labels[idx * self.batch_size:(idx + 1) * self.batch_size])
+            #y_test = tf.keras.utils.to_categorical(y_test, num_classes)
             return batch_x, batch_y
 
     def __len__(self):
@@ -132,7 +145,7 @@ if __name__ == '__main__':
     # hyperparameters
     args.add_argument('--epoch', type=int, default=500)
     args.add_argument('--batch_size', type=int, default=32)
-    args.add_argument('--learning_rate', type=int, default=0.0001)
+    args.add_argument('--learning_rate', type=int, default=0.001)
 
     config = args.parse_args()
 
@@ -144,12 +157,13 @@ if __name__ == '__main__':
 
     # model setting ## 반드시 이 위치에서 로드해야함
 
-    model = cnn_base()
+    model = build_xception()
+
 
     # Loss and optimizer
 
-    model.compile(tf.keras.optimizers.Adam(),
-                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=0.1),
+    model.compile(tf.keras.optimizers.Adam(learning_rate=learning_rate),
+                  loss=tf.keras.losses.CategoricalCrossentropy(),
                   metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
 
 
@@ -168,24 +182,38 @@ if __name__ == '__main__':
         image_keys, image_path = path_loader(root_path)
         labels = label_loader(root_path, image_keys)
         ##############################################
+        '''
+        nsml.load(checkpoint='0', session='KHD032/Breast_Pathology/237')
+        nsml.save('saved')
+        exit()
+
+        model.compile(tf.keras.optimizers.Adam(learning_rate=learning_rate),
+                      loss=tf.keras.losses.CategoricalCrossentropy(),
+                      metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
+        '''
 
         # call backs
         # reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
+        print("before label[0]",labels[0])
+        labels = tf.keras.utils.to_categorical(labels, 2)
+        print("after label[0]", labels[0])
 
-        #image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,test_size=0.15)
+        image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,test_size=0.20)
 
-        #unique, counts = np.unique(labels_trn, return_counts=True)
-        #num_trn = dict(zip(unique, counts))
-        #print("Number of Train Class", num_trn)
+        unique, counts = np.unique(labels, return_counts=True)
+        num_trn = dict(zip(unique, counts))
+        print("Number of Train Class", num_trn)
 
-        #unique, counts = np.unique(labels_val, return_counts=True)
-        #num_val = dict(zip(unique, counts))
-        #print("Number of Val Class", num_val)
+        unique, counts = np.unique(labels, return_counts=True)
+        num_val = dict(zip(unique, counts))
+        print("Number of Val Class", num_val)
 
-        #X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
-        #X_val = PathDataset(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
+        X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
+        X_val = PathDataset(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
 
-        X = PathDataset(image_path, labels, batch_size=batch_size, test_mode=False)
+
+
+        #X = PathDataset(image_path, labels, batch_size=batch_size, test_mode=False)
 
         print("---------------it is working----------------")
 
@@ -212,9 +240,15 @@ if __name__ == '__main__':
 
         for epoch in range(num_epochs):
             #hist = model.fit(X, validation_data=X_val, shuffle=True)
-            hist = model.fit(X, shuffle=True)
-            model.optimizer.lr = model.optimizer.lr * 0.9
-            print("::::current learning rate:", model.optimizer.lr.numpy())
+            print("current epoch:", epoch)
+            hist = model.fit(X, validation_data=X_val ,shuffle=True)
+            if epoch < 20:
+                model.optimizer.lr = model.optimizer.lr * 0.95
+                print("::::current learning rate:", model.optimizer.lr.numpy())
+            else:
+                model.optimizer.lr = model.optimizer.lr * 0.9
+                print("::::current learning rate:", model.optimizer.lr.numpy())
+
             """
             val_loss = hist.history['val_loss'][-1]
             if best > val_loss:
