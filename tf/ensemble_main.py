@@ -37,7 +37,10 @@ def bind_model(model):
     def infer(image_path):
         result = []
         X = PathDataset(image_path, labels=None, batch_size=batch_size)
+        print("model summary",model.summary())
         y_hat = model.predict(X)
+        print("y_hat:", y_hat)
+
         result.extend(np.argmax(y_hat, axis=1))
 
         print('predicted')
@@ -184,18 +187,29 @@ if __name__ == '__main__':
 
     # model setting ## 반드시 이 위치에서 로드해야함
 
-    model = build_inception()
-
+    model1 = build_xception()
+    model2 = build_resnet50()
 
     # Loss and optimizer
-
+    '''
     model.compile(tf.keras.optimizers.Adam(learning_rate=learning_rate),
                   loss=tf.keras.losses.SparseCategoricalCrossentropy(),
                   metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
-
+    '''
 
     ############ DONOTCHANGE ###############
+    bind_model(model1)
+    nsml.load(checkpoint='39', session='KHD032/Breast_Pathology/265')
+    bind_model(model2)
+    nsml.load(checkpoint='0', session='KHD032/Breast_Pathology/309')
+    input_ = tf.keras.Input(shape=(299, 299, 3))
+    m1 = model1(input_)
+    m2 = model2(input_)
+    out = tf.keras.layers.add([m1, m2])
+    model = tf.keras.models.Model(inputs=input_, outputs=out)
     bind_model(model)
+    nsml.save('ensemble')
+
     if config.pause:  ## test mode 일때는 여기만 접근
         print('Inferring Start...')
         nsml.paused(scope=locals())
@@ -210,6 +224,17 @@ if __name__ == '__main__':
         ##############################################
 
 
+        #bind_model(model)
+        #nsml.save('ensemble')
+
+        #exit()
+
+
+        #model.compile(tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        #              loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+        #              metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
+
+
         image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,test_size=0.10, random_state=10)
 
         unique, counts = np.unique(labels_trn, return_counts=True)
@@ -221,7 +246,19 @@ if __name__ == '__main__':
         print("Number of Val Class", num_val)
 
         X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
-        X_val = PathDataset2(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
+        X_val = PathDataset2(image_path_val, labels_val, batch_size=batch_size, test_mode=True)
+
+        print("model:", model)
+        print("type(model):", type(model))
+
+        print("model.summary()", model.summary())
+
+        print("model prediction",model.predict(X_val))
+
+        exit()
+
+
+
 
 
         print("---------------it is working----------------")
