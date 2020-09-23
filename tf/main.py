@@ -159,11 +159,10 @@ if __name__ == '__main__':
 
     model = build_xception()
 
-
     # Loss and optimizer
 
     model.compile(tf.keras.optimizers.Adam(learning_rate=learning_rate),
-                  loss=tf.keras.losses.CategoricalCrossentropy(),
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(),
                   metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
 
 
@@ -182,36 +181,27 @@ if __name__ == '__main__':
         image_keys, image_path = path_loader(root_path)
         labels = label_loader(root_path, image_keys)
         ##############################################
-        '''
-        nsml.load(checkpoint='0', session='KHD032/Breast_Pathology/237')
-        nsml.save('saved')
-        exit()
-
-        model.compile(tf.keras.optimizers.Adam(learning_rate=learning_rate),
-                      loss=tf.keras.losses.CategoricalCrossentropy(),
-                      metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
-        '''
 
         # call backs
         # reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
-        print("before label[0]",labels[0])
-        labels = tf.keras.utils.to_categorical(labels, 2)
-        print("after label[0]", labels[0])
+        # print(labels[0])
+        # no onehot encoding
+        # labels = tf.keras.utils.to_categorical(labels, 2)
 
         image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,test_size=0.20)
 
-        unique, counts = np.unique(labels, return_counts=True)
+        unique, counts = np.unique(labels_trn, return_counts=True)
         num_trn = dict(zip(unique, counts))
         print("Number of Train Class", num_trn)
 
-        unique, counts = np.unique(labels, return_counts=True)
+        unique, counts = np.unique(labels_val, return_counts=True)
         num_val = dict(zip(unique, counts))
         print("Number of Val Class", num_val)
 
         X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
         X_val = PathDataset(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
-
-
+        print("1st")
+        print(X.__getitem__(0))
 
         #X = PathDataset(image_path, labels, batch_size=batch_size, test_mode=False)
 
@@ -240,7 +230,7 @@ if __name__ == '__main__':
 
         for epoch in range(num_epochs):
             #hist = model.fit(X, validation_data=X_val, shuffle=True)
-            print("current epoch:", epoch)
+            print("current epoch:", epoch+1)
             hist = model.fit(X, validation_data=X_val ,shuffle=True)
             if epoch < 20:
                 model.optimizer.lr = model.optimizer.lr * 0.95
