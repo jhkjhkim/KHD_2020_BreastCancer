@@ -64,6 +64,20 @@ def build_xception():
     print("---------xceptionnet is loaded---------")
     return model
 
+def build_inception():
+    base_model = tf.keras.applications.InceptionV3(include_top=False, weights="imagenet", input_shape=(299, 299, 3))
+    base_model.trainable = True
+
+    model = tf.keras.Sequential([
+      #  tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
+      #  tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+      #  tf.keras.layers.experimental.preprocessing.RandomRotation(0.2, interpolation='nearest'),
+        base_model,
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dense(2, kernel_initializer='he_normal', activation='softmax')])
+    print("---------inception is loaded---------")
+    return model
+
 
 def recall(y_true, y_pred):
     y_true = K.flatten(y_true)
