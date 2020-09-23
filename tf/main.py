@@ -124,7 +124,9 @@ class PathDataset(tf.keras.utils.Sequence):
 class PathDataset2(tf.keras.utils.Sequence):
     def __init__(self, image_path, labels=None, batch_size=32, test_mode=True):
         self.image_path = image_path
-        self.labels = labels
+        self.labels = labels\
+
+
         self.mode = test_mode
         self.batch_size = batch_size
         self.datagen = tf.keras.preprocessing.image.ImageDataGenerator()
