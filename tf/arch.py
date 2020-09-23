@@ -51,7 +51,7 @@ def build_resnet50():
 
 
 def build_xception():
-    base_model = tf.keras.applications.Xception(include_top=False, weights=None, input_shape=(299, 299, 3))
+    base_model = tf.keras.applications.Xception(include_top=False, weights="imagenet", input_shape=(299, 299, 3))
     base_model.trainable = True
 
     model = tf.keras.Sequential([

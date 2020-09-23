@@ -35,16 +35,8 @@ def bind_model(model):
     def infer(image_path):
         result = []
         X = PathDataset(image_path, labels=None, batch_size=batch_size)
-
-        print("X.__getitem__(0)", X.__getitem__(0))
         y_hat = model.predict(X)
-
-        print("y_hat",y_hat)
-
-
         result.extend(np.argmax(y_hat, axis=1))
-
-        print("result:", result)
 
         print('predicted')
         return np.array(result)
@@ -129,6 +121,31 @@ class PathDataset(tf.keras.utils.Sequence):
     def __len__(self):
         return math.ceil(len(self.image_path) / self.batch_size)
 
+class PathDataset2(tf.keras.utils.Sequence):
+    def __init__(self, image_path, labels=None, batch_size=32, test_mode=True):
+        self.image_path = image_path
+        self.labels = labels
+        self.mode = test_mode
+        self.batch_size = batch_size
+        self.datagen = tf.keras.preprocessing.image.ImageDataGenerator()
+
+    def __getitem__(self, idx):
+        image_paths = self.image_path[idx * self.batch_size:(idx + 1) * self.batch_size]
+
+        # resize & rescale
+        batch_x = np.array([resize(imread(x), (299, 299)) for x in image_paths])
+
+        ### REQUIRED: PREPROCESSING ###
+
+        if self.mode:
+            return batch_x
+        else:
+            batch_y = np.array(self.labels[idx * self.batch_size:(idx + 1) * self.batch_size])
+            return batch_x, batch_y
+
+    def __len__(self):
+        return math.ceil(len(self.image_path) / self.batch_size)
+
 
 if __name__ == '__main__':
 
@@ -182,13 +199,8 @@ if __name__ == '__main__':
         labels = label_loader(root_path, image_keys)
         ##############################################
 
-        # call backs
-        # reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=8, factor = 0.2, verbose=1)
-        # print(labels[0])
-        # no onehot encoding
-        # labels = tf.keras.utils.to_categorical(labels, 2)
 
-        image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,test_size=0.20)
+        image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,test_size=0.10)
 
         unique, counts = np.unique(labels_trn, return_counts=True)
         num_trn = dict(zip(unique, counts))
@@ -199,11 +211,10 @@ if __name__ == '__main__':
         print("Number of Val Class", num_val)
 
         X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
-        X_val = PathDataset(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
-        print("1st")
-        print(X.__getitem__(0))
+        X_val = PathDataset2(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
 
-        #X = PathDataset(image_path, labels, batch_size=batch_size, test_mode=False)
+
+
 
         print("---------------it is working----------------")
 
@@ -229,7 +240,6 @@ if __name__ == '__main__':
         #    nsml.save(epoch)
 
         for epoch in range(num_epochs):
-            #hist = model.fit(X, validation_data=X_val, shuffle=True)
             print("current epoch:", epoch+1)
             hist = model.fit(X, validation_data=X_val ,shuffle=True)
             if epoch < 20:
