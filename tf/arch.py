@@ -66,6 +66,7 @@ def build_xception():
 
 
 def recall(y_true, y_pred):
+    y_true = K.flatten(y_true)
     y_true = K.cast(y_true, 'uint8')
     y_pred = K.cast(K.argmax(y_pred), 'uint8')
     tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
@@ -79,6 +80,7 @@ def recall(y_true, y_pred):
 
 
 def precision(y_true, y_pred):
+    y_true = K.flatten(y_true)
     y_true = K.cast(y_true, 'uint8')
     y_pred = K.cast(K.argmax(y_pred), 'uint8')
     tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
@@ -93,6 +95,7 @@ def precision(y_true, y_pred):
 
 
 def f1(y_true, y_pred):
+    y_true = K.flatten(y_true)
     y_true = K.cast(y_true, 'uint8')
     y_pred = K.cast(K.argmax(y_pred), 'uint8')
     tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
@@ -109,6 +112,7 @@ def f1(y_true, y_pred):
 
 
 def sp(y_true, y_pred):
+    y_true = K.flatten(y_true)
     y_true = K.cast(y_true, 'uint8')
     y_pred = K.cast(K.argmax(y_pred), 'uint8')
     tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
@@ -123,6 +127,7 @@ def sp(y_true, y_pred):
 
 
 def ntv(y_true, y_pred):
+    y_true = K.flatten(y_true)
     y_true = K.cast(y_true, 'uint8')
     y_pred = K.cast(K.argmax(y_pred), 'uint8')
     tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
@@ -137,6 +142,7 @@ def ntv(y_true, y_pred):
 
 
 def custom(y_true, y_pred):
+    y_true = K.flatten(y_true)
     y_true = K.cast(y_true, 'uint8')
     y_pred = K.cast(K.argmax(y_pred), 'uint8')
     tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
