@@ -9,11 +9,11 @@ import tensorflow as tf  # Tensorflow 2
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 import math
-from arch import cnn, cnn_base, build_xception, build_resnet50, recall, precision, f1, sp, ntv, custom, cust_loss_function
+from arch import cnn, cnn_base, build_xception, build_inception, build_resnet50, recall, precision, f1, sp, ntv, custom, cust_loss_function
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
 import tensorflow.keras.backend as K
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 
 
 
@@ -209,8 +209,19 @@ if __name__ == '__main__':
         labels = label_loader(root_path, image_keys)
         ##############################################
 
+        skf = StratifiedKFold(n_splits=10, random_state=10)
+        labels = np.asarray(labels)
+        # model number
+        target = 1
 
-        image_path_trn, image_path_val, labels_trn, labels_val = train_test_split(image_path, labels, stratify=labels,test_size=0.10, random_state=10)
+        count = 0
+        for train_index, test_index in skf.split(image_path, labels):
+            print("TRAIN:", train_index, "TEST:", test_index)
+            image_path_trn, image_path_val = image_path[train_index], image_path[test_index]
+            labels_trn, labels_val = labels[train_index], labels[test_index]
+            if count == target:
+                break
+            count += 1
 
         unique, counts = np.unique(labels_trn, return_counts=True)
         num_trn = dict(zip(unique, counts))
@@ -222,7 +233,6 @@ if __name__ == '__main__':
 
         X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
         X_val = PathDataset2(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
-
 
         print("---------------it is working----------------")
 
