@@ -9,7 +9,7 @@ import tensorflow as tf  # Tensorflow 2
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 import math
-from arch import cnn, cnn_base, build_xception, build_inception, build_resnet50, recall, precision, f1, sp, ntv, custom, cust_loss_function
+from arch import cnn, cnn_base, build_xception, build_xception2,build_densenet, build_inception, build_resnet50, recall, precision, f1, sp, ntv, custom, cust_loss_function
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
 import tensorflow.keras.backend as K
@@ -38,6 +38,8 @@ def bind_model(model):
         result = []
         X = PathDataset(image_path, labels=None, batch_size=batch_size)
         y_hat = model.predict(X)
+
+
         result.extend(np.argmax(y_hat, axis=1))
 
         print('predicted')
@@ -95,17 +97,14 @@ class PathDataset(tf.keras.utils.Sequence):
             for i in range(len(image_paths)):
                 theta, shear = np.random.uniform(-20, 20), np.random.uniform(-20, 20)
                 flip_v, flip_h = np.random.randint(0, 2), np.random.randint(0, 2)
-                brightness = np.random.uniform(0.8, 1)
                 zoom_z, zoom_y = np.random.uniform(0.8, 1), np.random.uniform(0.8, 1)
                 x_transform = self.datagen.apply_transform(batch_x[i],
                                                       transform_parameters={'theta': theta,
                                                                             'zx': zoom_z,
                                                                             'zy': zoom_y,
-                                                                            'brightness': brightness,
                                                                             'flip_vertical': flip_v,
                                                                             'flip_horizontal': flip_h,
                                                                             'shear': shear})
-                x_transform = x_transform / 255.
 
                 batch_list.append(x_transform)
                 # if i == 0:
@@ -184,7 +183,7 @@ if __name__ == '__main__':
 
     # model setting ## 반드시 이 위치에서 로드해야함
 
-    model = build_inception()
+    model = build_xception()
 
 
     # Loss and optimizer
@@ -208,20 +207,30 @@ if __name__ == '__main__':
         image_keys, image_path = path_loader(root_path)
         labels = label_loader(root_path, image_keys)
         ##############################################
+        '''
+        nsml.load(checkpoint='18', session='KHD032/Breast_Pathology/383')
+        nsml.save('save')
 
+        model.compile(tf.keras.optimizers.Adam(learning_rate=learning_rate),
+                      loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                      #loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                      metrics=['accuracy', recall, precision, f1, sp, ntv, custom])
+        #exit()
+        '''
         skf = StratifiedKFold(n_splits=10, random_state=10)
         labels = np.asarray(labels)
         # model number
-        target = 1
+
+        target = 3
 
         count = 0
         for train_index, test_index in skf.split(image_path, labels):
-            print("TRAIN:", train_index, "TEST:", test_index)
             image_path_trn, image_path_val = image_path[train_index], image_path[test_index]
             labels_trn, labels_val = labels[train_index], labels[test_index]
             if count == target:
                 break
             count += 1
+
 
         unique, counts = np.unique(labels_trn, return_counts=True)
         num_trn = dict(zip(unique, counts))
@@ -232,9 +241,50 @@ if __name__ == '__main__':
         print("Number of Val Class", num_val)
 
         X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
+        #X_train = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=True)
         X_val = PathDataset2(image_path_val, labels_val, batch_size=batch_size, test_mode=False)
 
+
+
+        ####  to find threshold
+
+        #for i in range(25):
+        #    x_test, y_test = X_val.__getitem__(i)
+        #    y_hat = model.predict(x_test)
+        #    y_prob = y_hat.copy()
+
+        #    y_hat = np.argmax(y_hat, axis=1)
+
+
+            #print("y_hat.shape", y_hat.shape)
+            #print("type(y_hat)", type(y_hat))
+         #   print("abs(y_test - y_hat)", abs(y_test - y_hat))
+          #  if abs(y_test - y_hat).any():
+           #     print("miss classified!!!!!!!!!")
+           #     print("true label     :", y_test)
+           #     print("predicted label:",y_hat)
+           #     print("predicted probability:", y_prob)
+
+           # else:
+            #    continue
+
+
+
+
+        #print("X_train.__getitem__(0)", X_train.__getitem__(0))
+        #print("model.predict(X_train.__getitem__(0)", model.predict(X_train.__getitem__(0)))
+
+        #print("X.__getitem__(0)", X.__getitem__(0))
+
         print("---------------it is working----------------")
+
+
+
+        #input_ = tf.keras.Input(shape=(32, 32, 3))
+        #m1 = model(input_)
+        #out = tf.keras.layers.concatenate([m1, 1 - m1])
+        #ensemble = tf.keras.models.Model(inputs=input_, outputs=out)
+        #ensemble.summary()
 
         #best = 10
         #cnt = 0
@@ -257,19 +307,17 @@ if __name__ == '__main__':
         #    nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])  # , acc=train_acc)
         #    nsml.save(epoch)
 
+        best = 10
+        cnt = 0
+        #patience
+        patience = 3
+
         for epoch in range(num_epochs):
             print("current epoch:", epoch)
 
-            hist = model.fit(X, validation_data=X_val ,shuffle=True)
-            if epoch < 20:
-                model.optimizer.lr = model.optimizer.lr * 0.95
-                print("::::current learning rate:", model.optimizer.lr.numpy())
-            else:
-                model.optimizer.lr = model.optimizer.lr * 0.9
-                print("::::current learning rate:", model.optimizer.lr.numpy())
 
-            """
-            val_loss = hist.history['val_loss'][-1]
+            hist = model.fit(X, validation_data=X_val ,shuffle=True)
+            val_loss = hist.history['loss'][-1]
             if best > val_loss:
                 print(":::best val loss updated")
                 best = val_loss
@@ -280,6 +328,15 @@ if __name__ == '__main__':
                 if cnt >= patience:
                     model.optimizer.lr = model.optimizer.lr / 5
                     print(':::**learning rate decreased to', model.optimizer.lr.numpy())
+
+            """
+            if epoch < 20:
+                model.optimizer.lr = model.optimizer.lr * 0.95
+                print("::::current learning rate:", model.optimizer.lr.numpy())
+            else:
+                model.optimizer.lr = model.optimizer.lr * 0.9
+                print("::::current learning rate:", model.optimizer.lr.numpy())
+            
             """
 
             nsml.report(summary=True, step=epoch, epoch_total=num_epochs, loss=hist.history['loss'])  # , acc=train_acc)

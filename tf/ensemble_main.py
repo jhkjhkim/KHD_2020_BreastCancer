@@ -9,7 +9,7 @@ import tensorflow as tf  # Tensorflow 2
 import nsml
 from nsml.constants import DATASET_PATH, GPU_NUM
 import math
-from arch import cnn, cnn_base, build_xception, build_resnet50, recall, precision, f1, sp, ntv, custom, cust_loss_function
+from arch import cnn, cnn_base, build_xception, build_xception2, build_inception, build_resnet50, recall, precision, f1, sp, ntv, custom, cust_loss_function
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import Xception
 import tensorflow.keras.backend as K
@@ -34,14 +34,16 @@ def bind_model(model):
         print('model loaded!')
 
 
+
+
     def infer(image_path):
         result = []
         X = PathDataset(image_path, labels=None, batch_size=batch_size)
-        print("model summary",model.summary())
         y_hat = model.predict(X)
-        print("y_hat:", y_hat)
 
         result.extend(np.argmax(y_hat, axis=1))
+
+
 
         print('predicted')
         return np.array(result)
@@ -188,7 +190,8 @@ if __name__ == '__main__':
     # model setting ## 반드시 이 위치에서 로드해야함
 
     model1 = build_xception()
-    model2 = build_resnet50()
+    model2 = build_xception()
+    model3 = build_xception2()
 
     # Loss and optimizer
     '''
@@ -199,16 +202,23 @@ if __name__ == '__main__':
 
     ############ DONOTCHANGE ###############
     bind_model(model1)
-    nsml.load(checkpoint='39', session='KHD032/Breast_Pathology/265')
+    nsml.load(checkpoint='43', session='KHD032/Breast_Pathology/265')
     bind_model(model2)
-    nsml.load(checkpoint='0', session='KHD032/Breast_Pathology/309')
+    nsml.load(checkpoint='29', session='KHD032/Breast_Pathology/336')
+    bind_model(model3)
+    nsml.load(checkpoint='62', session='KHD032/Breast_Pathology/223')
+
+    alpha = 2.4
+
     input_ = tf.keras.Input(shape=(299, 299, 3))
     m1 = model1(input_)
     m2 = model2(input_)
-    out = tf.keras.layers.add([m1, m2])
+    m3 = model3(input_)
+    m3_out = tf.keras.layers.concatenate([1-m3, m3+alpha])
+    out = tf.keras.layers.add([m1, m2, m3_out])
     model = tf.keras.models.Model(inputs=input_, outputs=out)
     bind_model(model)
-    nsml.save('ensemble')
+    nsml.save('ensemble3')
 
     if config.pause:  ## test mode 일때는 여기만 접근
         print('Inferring Start...')
@@ -222,6 +232,17 @@ if __name__ == '__main__':
         image_keys, image_path = path_loader(root_path)
         labels = label_loader(root_path, image_keys)
         ##############################################
+
+        #input_ = tf.keras.Input(shape=(32, 32, 3))
+        #m1 = model(input_)
+        #out = tf.keras.layers.concatenate([m1, 1 - m1])
+        #ensemble = tf.keras.models.Model(inputs=input_, outputs=out)
+        #ensemble.summary()
+
+        print("model.summary()", model.summary())
+
+
+
 
 
         #bind_model(model)
@@ -248,16 +269,12 @@ if __name__ == '__main__':
         X = PathDataset(image_path_trn, labels_trn, batch_size=batch_size, test_mode=False)
         X_val = PathDataset2(image_path_val, labels_val, batch_size=batch_size, test_mode=True)
 
-        print("model:", model)
-        print("type(model):", type(model))
 
-        print("model.summary()", model.summary())
+        x_test, y_test = X.__getitem__(0)
 
-        print("model prediction",model.predict(X_val))
+        print("model.predict(x)", model.predict(x_test))
 
         exit()
-
-
 
 
 

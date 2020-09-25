@@ -37,7 +37,7 @@ def cnn_base():
 
 
 def build_resnet50():
-    base_model = tf.keras.applications.ResNet50V2(include_top=False, weights=None, input_shape=(299, 299, 3))
+    base_model = tf.keras.applications.ResNet50V2(include_top=False, weights='imagenet', input_shape=(299, 299, 3))
     base_model.trainable = True
 
     model = tf.keras.Sequential([
@@ -49,9 +49,22 @@ def build_resnet50():
         tf.keras.layers.Dense(2, kernel_initializer='he_normal', activation='softmax')])
     return model
 
+def build_xception2():
+    base_model = tf.keras.applications.Xception(include_top=False, weights='imagenet', input_shape=(299, 299, 3))
+    base_model.trainable = True
+
+    model = tf.keras.Sequential([
+      #  tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
+      #  tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+      #  tf.keras.layers.experimental.preprocessing.RandomRotation(0.2, interpolation='nearest'),
+        base_model,
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dense(1, kernel_initializer='he_normal', activation='sigmoid')])
+    print("---------xceptionnet is loaded---------")
+    return model
 
 def build_xception():
-    base_model = tf.keras.applications.Xception(include_top=False, weights=None, input_shape=(299, 299, 3))
+    base_model = tf.keras.applications.Xception(include_top=False, weights='imagenet', input_shape=(299, 299, 3))
     base_model.trainable = True
 
     model = tf.keras.Sequential([
@@ -77,6 +90,23 @@ def build_inception():
         tf.keras.layers.Dense(2, kernel_initializer='he_normal', activation='softmax')])
     print("---------inception is loaded---------")
     return model
+
+
+def build_densenet():
+    base_model = tf.keras.applications.DenseNet169(include_top=False, weights='imagenet', input_shape=(299, 299, 3))
+    base_model.trainable = True
+
+    model = tf.keras.Sequential([
+      #  tf.keras.layers.experimental.preprocessing.Resizing(299, 299),
+      #  tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical"),
+      #  tf.keras.layers.experimental.preprocessing.RandomRotation(0.2, interpolation='nearest'),
+        base_model,
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dense(2, kernel_initializer='he_normal', activation='softmax')])
+    print("---------densenet is loaded---------")
+    return model
+
+
 
 
 def recall(y_true, y_pred):
