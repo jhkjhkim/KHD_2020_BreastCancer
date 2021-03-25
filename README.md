@@ -5,9 +5,9 @@ SKKU DMLab 윤수희 김재호 강현구 손종욱 <br/>
 <br/>
 
 *tf  
-  *main.py (ensemble_main.py)
-  *arch.py  
-  *setup.py  
+  +main.py (ensemble_main.py)
+  +arch.py  
+  +setup.py  
 
 
 ## Korea Health Datathon 2020
