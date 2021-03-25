@@ -1,5 +1,5 @@
 # BreastCancer 장어탕가디언 
-SKKU DMLab 윤수희 김재호 강현구 손종욱
+SKKU DMLab 윤수희 김재호 강현구 손종욱 <br/>
 유방 병리 조직 이미지 분류 (B Track)
 
 ## Korea Health Datathon 2020
