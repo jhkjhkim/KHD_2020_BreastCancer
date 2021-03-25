@@ -20,6 +20,7 @@ def test_path_loader (root_path): ##
 
 
 def feed_infer(output_file, infer_func):
+
     root_path = os.path.join(DATASET_PATH,'test')
     image_keys, image_path = test_path_loader(root_path)
     result = infer_func(image_path)

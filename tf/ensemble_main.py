@@ -202,20 +202,22 @@ if __name__ == '__main__':
 
     ############ DONOTCHANGE ###############
     bind_model(model1)
-    nsml.load(checkpoint='43', session='KHD032/Breast_Pathology/265')
+    nsml.load(checkpoint='19', session='KHD032/Breast_Pathology/392')
     bind_model(model2)
     nsml.load(checkpoint='29', session='KHD032/Breast_Pathology/336')
     bind_model(model3)
     nsml.load(checkpoint='62', session='KHD032/Breast_Pathology/223')
 
-    alpha = 2.4
+    alpha = 1.2
 
     input_ = tf.keras.Input(shape=(299, 299, 3))
     m1 = model1(input_)
     m2 = model2(input_)
     m3 = model3(input_)
     m3_out = tf.keras.layers.concatenate([1-m3, m3+alpha])
+    #m3_out = tf.keras.layers.concatenate([1 - m3, m3])
     out = tf.keras.layers.add([m1, m2, m3_out])
+    #out = tf.keras.layers.add([m1, m2, m3])
     model = tf.keras.models.Model(inputs=input_, outputs=out)
     bind_model(model)
     nsml.save('ensemble3')
@@ -273,6 +275,7 @@ if __name__ == '__main__':
         x_test, y_test = X.__getitem__(0)
 
         print("model.predict(x)", model.predict(x_test))
+        print("true_label:", y_test)
 
         exit()
 
