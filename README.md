@@ -16,9 +16,10 @@ SKKU DMLab 윤수희 김재호 강현구 손종욱 <br/>
 
 # Dataset
 ![image](https://user-images.githubusercontent.com/59590383/112409882-9a971680-8d5d-11eb-962c-c2eee5c68cba.png)
-binary-classification problem <br/>
+**binary-classification problem <br/>
+Provided dataset <br/>
 Train set  5,600 : 2,400 (양성 : 악성) <br/>
-Test set   1,400 : 600 (양성 : 악성) 
+Test set   1,400 : 600 (양성 : 악성) **
 
 ## Competition result
 **rank 6th out of 25**
