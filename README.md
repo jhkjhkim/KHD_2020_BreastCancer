@@ -3,12 +3,12 @@ SKKU DMLab 윤수희 김재호 강현구 손종욱 <br/>
 유방 병리 조직 이미지 분류 (B Track)
 # Code
 <br/>
-├─python
-│  │  
-│  ├─tf
-│  │      main.py (ensemble_main.py)
-│  │      arch.py
-│  |      setup.py
+├─python  
+│  │    
+│  ├─tf  
+│  │      main.py (ensemble_main.py)  
+│  │      arch.py  
+│  |      setup.py  
 <br/>
 
 ## Korea Health Datathon 2020
